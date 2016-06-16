@@ -62,10 +62,40 @@ static void useage()
 	printf("		vivo_cam_sensor  cam_subdev_num  [reg] [value]");
 }
 
+// sensor slave addr
+#define SENSOR_NAME_MAX		20
+
+struct sensor_slave_addr_t{
+	char sensor_name[SENSOR_NAME_MAX];
+	unsigned int slave_addr;
+};
+
+struct sensor_slave_addr_t sensor_list[]={
+	{"imx298",0x34},
+	{"ov5675_d5v15b",0x6c},
+	{"ov5695",0x20},
+};
+/* 
+ * test regs:
+ * imx298
+ * 		0x0016: sensor id 0x0298
+ * 		0x0114: numb of lane	3:4-lane
+ *
+ * ov5675:
+ * 		0x300b: sensor id 0x5675
+ * 		0x302A: [3:0] version [7:4] Process
+ * 		0x4503: test pattern   0~3
+ *
+ * ov5695:
+ * 		0x300b: sensor id 0x5695
+ * */
+
+static unsigned int g_slave_addr;
 // get cam sensor name 
 int cam_sensor_name(int fd)
 {
 	int rc;
+	int i=0;
 	struct sensorb_cfg_data cfg;
 	LOG("%s\n",__func__);	
 	cfg.cfgtype = CFG_GET_SENSOR_INFO;
@@ -76,8 +106,18 @@ int cam_sensor_name(int fd)
 	}
 	LOGH("\nsensor name is %s\n",cfg.cfg.sensor_info.sensor_name);
 	LOGH("session id %d\n",cfg.cfg.sensor_info.session_id);
-	LOGH("subdev_id  %d\n",cfg.cfg.sensor_info.subdev_id[SUB_MODULE_SENSOR]);
-	LOGH("subdev_intf %d\n",cfg.cfg.sensor_info.subdev_intf[SUB_MODULE_SENSOR]);
+	for(i=0;i<sizeof(sensor_list)/sizeof(sensor_list[0]);i++)
+	{	
+		if(0==strcmp(cfg.cfg.sensor_info.sensor_name,sensor_list[i].sensor_name))
+		{
+			g_slave_addr=sensor_list[i].slave_addr;
+			LOGH("Record sensor %s,slave addr is 0x%x\n",sensor_list[i].sensor_name,g_slave_addr);
+			break;
+		}	
+	}	
+
+//	LOGH("subdev_id  %d\n",cfg.cfg.sensor_info.subdev_id[SUB_MODULE_SENSOR]);
+//	LOGH("subdev_intf %d\n",cfg.cfg.sensor_info.subdev_intf[SUB_MODULE_SENSOR]);
 	return 0;
 }
 
@@ -86,10 +126,15 @@ static int cam_read(int fd,int reg)
 	int rc,val;
 	struct sensorb_cfg_data cfg;
 	struct msm_camera_i2c_read_config read_config;
+
 	LOG("%s\n",__func__);	
 
+	if(0 == g_slave_addr)
+	{
+		LOGE("ERROR: slave id is 0x%x,Can't read!!!",g_slave_addr);
+	}
 	memset(&read_config,0,sizeof(read_config));
-	read_config.slave_addr=0;
+	read_config.slave_addr=g_slave_addr;
 	read_config.reg_addr=reg;
 	read_config.data_type=MSM_CAMERA_I2C_BYTE_DATA;
     
@@ -114,6 +159,7 @@ static int cam_write(int fd,int reg,int val)
 	struct msm_camera_i2c_reg_array reg_array;
 	
 	LOG("%s",__func__);	
+	g_slave_addr=0;
 
 	memset(&reg_array,0,sizeof(reg_array));
 	reg_array.reg_addr=reg;
@@ -162,14 +208,14 @@ int main(int argc,char *argv[])
 	else if(3==argc)
 	{
 		cam_sub_num=atoi(argv[1]);
-		reg=atoi(argv[2]);
+		reg=strtol(argv[2],NULL,0);
 		wr_flag=R_FLAG;
 	}	
 	else if(4==argc)
 	{	
 		cam_sub_num=atoi(argv[1]);
-		reg=atoi(argv[2]);
-		reg_val=atoi(argv[3]);
+		reg=strtol(argv[2],NULL,0);
+		reg_val=strtol(argv[3],NULL,0);
 		wr_flag=W_FLAG;
 	}	
 
@@ -191,7 +237,12 @@ int main(int argc,char *argv[])
 			return 0;
 	}		
 	else if(R_FLAG==wr_flag)
+	{	
+		ret=cam_sensor_name(cam_fd);
+		if(ret<0)
+			goto err;
 		cam_read(cam_fd,reg);
+	}
 	else if(W_FLAG==wr_flag)
 		cam_write(cam_fd,reg,reg_val);
 

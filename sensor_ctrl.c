@@ -86,6 +86,9 @@ struct sensor_slave_addr_t sensor_list[]={
  * 		0x302A: [3:0] version [7:4] Process
  * 		0x4503: test pattern   0~3
  *
+ * 		0x100: 0:stream off 1:stream on
+ * 		0x103: 1 soft reset
+ *
  * ov5695:
  * 		0x300b: sensor id 0x5695
  * */
@@ -170,7 +173,7 @@ static int cam_write(int fd,int reg,int val)
 	setting.reg_setting=&reg_array;
 	setting.size=1;
 	setting.addr_type=MSM_CAMERA_I2C_WORD_ADDR;
-	setting.data_type=MSM_CAMERA_I2C_WORD_DATA;
+	setting.data_type=MSM_CAMERA_I2C_BYTE_DATA;
 	setting.delay=0;
 
     cfg.cfgtype = CFG_WRITE_I2C_ARRAY;

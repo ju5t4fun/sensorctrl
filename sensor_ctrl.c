@@ -72,17 +72,21 @@ struct sensor_slave_addr_t{
 
 struct sensor_slave_addr_t sensor_list[]={
 	{"imx298",0x34},
+	{"imx362",0x34},
 	{"ov5675_d5v15b",0x6c},
 	{"ov5695",0x20},
 };
 /* 
  * test regs:
  * imx298
- * 		0x0016: sensor id 0x0298
+ * 		0x0016-17: sensor id 0x0298
+ * 		0x0114: numb of lane	3:4-lane
+ * imx362
+ * 		0x0016-17: sensor id 0x0362
  * 		0x0114: numb of lane	3:4-lane
  *
  * ov5675:
- * 		0x300b: sensor id 0x5675
+ * 		0x300b-0c: sensor id 0x5675
  * 		0x302A: [3:0] version [7:4] Process
  * 		0x4503: test pattern   0~3
  *
@@ -90,7 +94,7 @@ struct sensor_slave_addr_t sensor_list[]={
  * 		0x103: 1 soft reset
  *
  * ov5695:
- * 		0x300b: sensor id 0x5695
+ * 		0x300b-0c: sensor id 0x5695
  * */
 
 static unsigned int g_slave_addr;
@@ -126,7 +130,7 @@ int cam_sensor_name(int fd)
 
 static int cam_read(int fd,int reg)
 {
-	int rc,val;
+	unsigned int rc,val;
 	struct sensorb_cfg_data cfg;
 	struct msm_camera_i2c_read_config read_config;
 
@@ -146,7 +150,7 @@ static int cam_read(int fd,int reg)
 
 	rc = ioctl(fd, VIDIOC_MSM_SENSOR_CFG, &cfg);
 	if (rc < 0) {
-	    LOGE("ERROR: msm sensor read failed rc %d", rc);
+	    LOGE("ERROR: msm sensor read failed rc %d,error is %s!!!\n", rc,strerror(errno));
 		return -1;
 	}
 	val=read_config.data; 
@@ -181,7 +185,7 @@ static int cam_write(int fd,int reg,int val)
 
 	rc = ioctl(fd, VIDIOC_MSM_SENSOR_CFG, &cfg);
 	if (rc < 0) {
-	    LOGE("ERROR: msm sensor write failed rc %d", rc);
+	    LOGE("ERROR: msm sensor write failed rc %d,error is %s!!!\n", rc,strerror(errno));
 		return -1;
 	}
 	LOGH("\nsensor write reg 0x%x,val 0x%x!\n",reg,val);
@@ -224,7 +228,9 @@ int main(int argc,char *argv[])
 
 	snprintf(cam_subdev,CAM_SUBDEV_LEN,"%s%d",CAM_PATH,cam_sub_num);
 	LOGH("cam subdev:%s\n",cam_subdev);
-	
+   
+    LOGH("cam ctrl reg is 0x%x!\n",reg);
+    
 	cam_fd=open(cam_subdev,O_RDWR | O_NONBLOCK);
 	if(cam_fd < 0)
 		LOGE("ERROR: Can't open %s.  Res:%s\n",cam_subdev,strerror(errno));

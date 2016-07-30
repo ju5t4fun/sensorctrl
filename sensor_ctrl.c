@@ -74,7 +74,7 @@ struct sensor_slave_addr_t sensor_list[]={
 	{"imx298",0x34},
 	{"imx362",0x34},
 	{"ov5675_d5v15b",0x6c},
-	{"ov5695",0x20},
+	{"ov5695",0x6c},
 };
 /* 
  * test regs:

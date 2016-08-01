@@ -15,10 +15,23 @@
  *
  * =====================================================================================
  */
+
+/* ************************************************************************************************************
+ *
+ *	History:
+ *
+ *	Name				Data			Ver			Act
+ *--------------------------------------------------------------------------------------------
+ *	liuchangjian		2016-08-01		v2.0		match msm8996 msm_camera_i2c_read_config struct add enum msm_camera_i2c_reg_addr_type addr_type;
+ *
+ *
+ ******************************************************************************************************************* */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include <unistd.h>											// vivo liuchangjian add for msm8996
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -26,6 +39,8 @@
 
 // qcom header
 #include <media/msm_cam_sensor.h>
+
+#define PLAT_MSM8996
 
 #define DEBUG_HIGH
 
@@ -144,6 +159,10 @@ static int cam_read(int fd,int reg)
 	read_config.slave_addr=g_slave_addr;
 	read_config.reg_addr=reg;
 	read_config.data_type=MSM_CAMERA_I2C_BYTE_DATA;
+	// vivo liuchangjian 2016-08-01 add for msm8996 platform modify msm_camera_i2c_read_config struct
+#ifdef PLAT_MSM8996	
+	read_config.addr_type=MSM_CAMERA_I2C_WORD_ADDR;
+#endif	
     
 	cfg.cfgtype = CFG_SLAVE_READ_I2C;
     cfg.cfg.setting = &read_config;
